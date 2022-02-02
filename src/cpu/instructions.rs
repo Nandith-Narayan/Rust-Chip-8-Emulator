@@ -39,3 +39,7 @@ pub fn load_immediate(cpu:&mut Cpu, reg:usize, val:u8){
     cpu.register[reg] = val;
     cpu.pc += 2;
 }
+pub fn add_immediate(cpu:&mut Cpu, reg:usize, val:u8){
+    cpu.register[reg] = (cpu.register[reg]+val) & 0xFF;
+    cpu.pc += 2;
+}

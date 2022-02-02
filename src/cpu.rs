@@ -45,6 +45,7 @@ impl Cpu {
             (0x4, a, b, c) =>  insts::skip_not_eq(self, a as usize, (b << 4 | c) as u16),
             (0x5, a, b, 0x0) =>  insts::skip_reg_eq(self, a as usize, b as usize),
             (0x6, a, b, c) =>  insts::load_immediate(self, a as usize, (b << 4 | c) as u8),
+            (0x7, a, b, c) =>  insts::add_immediate(self, a as usize, (b << 4 | c) as u8),
             (a,b,c,d) => {println!("Undefined opcode {}{}{}{}", a,b,c,d); insts::nop(self);}
         }
     }
