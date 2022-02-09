@@ -7,3 +7,8 @@ edition = "2021"
 
 [dependencies]
 rand = "0.8.0"
+pixels = "0.9.0"
+winit = "0.26.1"
+winit_input_helper = "0.11.0"
+wgpu = "0.12.0"
+futures = "0.3.4"
