@@ -1,6 +1,11 @@
 mod instructions;
 use instructions as insts;
 use crate::font_data;
+#[derive(Copy, Clone, Eq, PartialEq)]
+pub enum KeyState{
+    Pressed,
+    NotPressed
+}
 
 pub struct Cpu {
     pub memory: [u8; 4096],
@@ -10,6 +15,8 @@ pub struct Cpu {
     pub stack: [usize; 16],
     pub i_reg: u16,
     pub frame_buffer: [u8; 64*32],
+    pub key_states: [KeyState; 16],
+    pub delay_timer: u8,
 }
 pub fn init() -> Cpu {
     println!("Initializing CPU...");
@@ -20,6 +27,8 @@ pub fn init() -> Cpu {
                 stack: [0; 16],
                 i_reg: 0,
                 frame_buffer: [0; 64*32],
+                key_states: [KeyState::NotPressed; 16],
+                delay_timer: 0,
     };
 }
 impl Cpu {
@@ -47,6 +56,7 @@ impl Cpu {
     }
     pub fn execute_instruction(&mut self, inst: (u16, u16, u16, u16)){
         match inst{
+            (0x0, 0x0, 0x0, 0x0) =>  insts::nop(self),
             (0x0, 0x0, 0xE, 0x0) =>  insts::cls(self),
             (0x0, 0x0, 0xE, 0xE) =>  insts::ret(self),
             (0x1, a, b, c) =>  insts::jp(self, (a << 8 | b << 4 | c) as u16),
@@ -70,6 +80,10 @@ impl Cpu {
             (0xB, a, b, c) =>  insts::jp_v0(self, (a << 8 | b << 4 | c) as u16),
             (0xC, a, b, c) =>  insts::rnd(self, a as usize, (b << 4 | c) as u16),
             (0xD, a, b, c) =>  insts::draw(self, a as usize, b as usize, c as u16),
+            (0xE, a, 0x9, 0xE) =>  insts::skip_pressed(self, a),
+            (0xE, a, 0xA, 0x1) =>  insts::skip_not_pressed(self, a),
+            (0xF, a, 0x0, 0x7) =>  insts::read_delay_timer(self, a),
+            (0xF, a, 0x1, 0x5) =>  insts::set_delay_timer(self, a),
             (0xF, a, 0x1, 0xE) =>  insts::add_i(self, a),
             (0xF, a, 0x2, 0x9) =>  insts::load_sprite(self, a),
             (0xF, a, 0x3, 0x3) =>  insts::load_bcd(self, a),

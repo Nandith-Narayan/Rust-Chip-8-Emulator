@@ -1,4 +1,4 @@
-use crate::cpu::Cpu;
+use crate::cpu::{Cpu, KeyState};
 use rand::Rng;
 
 pub fn nop(cpu:&mut Cpu){
@@ -11,16 +11,19 @@ pub fn cls(cpu:&mut Cpu){
     cpu.pc += 2;
 }
 pub fn ret(cpu:&mut Cpu){
-    cpu.pc = cpu.stack[cpu.sp];
     cpu.sp -= 1;
+    cpu.pc = cpu.stack[cpu.sp];
 }
 pub fn jp(cpu:&mut Cpu, address: u16){
     cpu.pc = address as usize;
+
 }
 pub fn call(cpu:&mut Cpu, address: u16){
+
     cpu.stack[cpu.sp] = cpu.pc+2;
     cpu.sp += 1;
     cpu.pc = address as usize;
+
 }
 pub fn skip_eq(cpu:&mut Cpu, reg:usize, val:u16){
     if cpu.register[reg] == val as u8 {
@@ -118,8 +121,7 @@ pub fn load_immediate_i(cpu:&mut Cpu, val:u16){
     cpu.i_reg = val;
     cpu.pc += 2;
 }
-pub fn jp_v0(cpu:&mut Cpu, address: u16){
-    cpu.pc = address as usize + (cpu.register[0] as usize);
+pub fn jp_v0(cpu:&mut Cpu, address: u16){ cpu.pc = address as usize + (cpu.register[0] as usize);
 }
 pub fn rnd(cpu:&mut Cpu, reg:usize, val:u16){
     let mut rng = rand::thread_rng();
@@ -131,15 +133,45 @@ pub fn draw(cpu:&mut Cpu, reg1:usize, reg2:usize, val:u16){
     // TODO: set VF on erase
     let start_address = cpu.i_reg;
     let start_address_frame = (cpu.register[reg1] as u16) + ((cpu.register[reg2] as u16)*64);
-    println!("address: {}",start_address);
+    cpu.register[0xF] = 0;
 
     for offset in 0..val{
         let byte = cpu.memory[(offset+start_address) as usize];
         for i in 0..8{
             let color = (byte >> i)&0x1;
-            cpu.frame_buffer[(start_address_frame+((offset%5)*64)+(7-i)) as usize] ^= color;
+            let address = start_address_frame+(offset*64)+(7-i);
+            if address < 2048 {
+                let old = cpu.frame_buffer[address as usize];
+                let new = cpu.frame_buffer[address as usize] ^ color;
+                cpu.frame_buffer[address as usize] = new;
+                if old==1 && new == 0{
+                    cpu.register[0xF] = 1;
+                }
+            }
         }
     }
+    cpu.pc += 2;
+}
+pub fn skip_pressed(cpu:&mut Cpu, reg:u16){
+    if cpu.key_states[reg as usize] == KeyState::Pressed{
+        cpu.pc += 4;
+    }else {
+        cpu.pc += 2;
+    }
+}
+pub fn skip_not_pressed(cpu:&mut Cpu, reg:u16){
+    if cpu.key_states[reg as usize] == KeyState::NotPressed{
+        cpu.pc += 4;
+    }else {
+        cpu.pc += 2;
+    }
+}
+pub fn read_delay_timer(cpu:&mut Cpu, reg:u16){
+    cpu.register[reg as usize] = cpu.delay_timer;
+    cpu.pc += 2;
+}
+pub fn set_delay_timer(cpu:&mut Cpu, reg:u16){
+    cpu.delay_timer =cpu.register[reg as usize];
     cpu.pc += 2;
 }
 pub fn add_i(cpu:&mut Cpu, reg:u16){
